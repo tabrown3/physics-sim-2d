@@ -7,9 +7,8 @@ export class DynamicBody {
   position: Vec2d; // [m], global
   velocity: Vec2d; // [m/s], translational, local
   mass: number; // [kg], uniformly distributed
-  centerOfMass: Vec2d; // [m], local
+  centerOfMass: Vec2d; // [m], local (offset from position (CoM + pos = global CoM pos)
   momentOfInertia: number; // [kg-m^2], assuming rectangle (arbitrary)
-  // angle: number; // [rad], right is 0, increases clockwise
   angularVelocity: number; // [rad/s]
   forceApplications = new Subject<number>();
 
@@ -40,20 +39,25 @@ export class DynamicBody {
   }
 
   // apply force by local coords, local force in Newtons
-  applyLocalForceAtLocalPoint = (pointL: Vec2d, forceVecL: Vec2d) => {
+  applyLocalForceAtLocalPoint = (pointLFunc: () => Vec2d, forceVecLFunc: () => Vec2d) => {
 
-    const forceVec = forceVecL.copy();
-    const point = pointL.copy();
+    // const forceVec = forceVecL.copy();
+    // const point = pointL.copy();
+
+    return this.applyForceAtPoint(
+      () => pointLFunc().rotateByAngle(this.angle),
+      () => forceVecLFunc().rotateByAngleWithOffset(this.angle, pointLFunc())
+    );
+  }
+
+  applyForceAtPoint = (pointFunc: () => Vec2d, forceVecFunc: () => Vec2d) => {
 
     return this.forceApplications.subscribe(dt => {
 
-      /** because these are local force applications, pointL is, in fact, the radius which is being rotated along with the object*/
-      const forceDict = this.calculateForces(point.rotateByAngle(this.angle), forceVec.rotateByAngleWithOffset(this.angle, point));
-      // const forceDict = this.calculateForces(point, forceVec);
+      const forceDict = this.calculateForces(pointFunc(), forceVecFunc());
 
       const velocityDiffDict = this.calculateVelocities(forceDict.torque, forceDict.transForceVec, dt);
       this.modifyVelocities(velocityDiffDict.angularVelocityDiff, velocityDiffDict.velocityDiff);
-      // this.modifyPositions(velocityDiffDict.angularVelocityDiff, velocityDiffDict.velocityDiff);
     });
   }
 

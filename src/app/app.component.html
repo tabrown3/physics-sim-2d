@@ -1,6 +1,10 @@
-<div class="box"
-     [style.background]="'blue'"
-     [style.top]="dynamicBody.position.y + 'px'"
-     [style.left]="dynamicBody.position.x + 'px'"
-     [style.transform]="'rotate(' + dynamicBody.angle + 'rad)'"
-></div>
+<div class="outer-container container-fluid">
+  <div class="row">
+    <div class="col-9">
+      <app-game-window></app-game-window>
+    </div>
+    <div class="col-3">
+      <app-control-panel></app-control-panel>
+    </div>
+  </div>
+</div>

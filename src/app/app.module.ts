@@ -3,11 +3,15 @@ import { NgModule } from '@angular/core';
 
 
 import { AppComponent } from './app.component';
+import { GameWindowComponent } from './game-window/game-window.component';
+import { ControlPanelComponent } from './control-panel/control-panel.component';
 
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    GameWindowComponent,
+    ControlPanelComponent
   ],
   imports: [
     BrowserModule

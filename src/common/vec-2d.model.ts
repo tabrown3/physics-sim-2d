@@ -136,7 +136,8 @@ export class Vec2d {
     const cosAngle = Math.cos(angle);
     const sinAngle = Math.sin(angle);
 
-    return new Vec2d(this.x * cosAngle + this.y * sinAngle, -this.x * sinAngle + this.y * cosAngle);
+    // return new Vec2d(this.x * cosAngle + this.y * sinAngle, -this.x * sinAngle + this.y * cosAngle);
+    return new Vec2d(this.x * cosAngle - this.y * sinAngle, this.x * sinAngle + this.y * cosAngle);
   }
 
   // rotates angle about origin at an offset
