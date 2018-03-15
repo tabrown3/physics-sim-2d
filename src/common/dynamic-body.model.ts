@@ -1,8 +1,9 @@
 import {Vec2d} from './vec-2d.model';
 import {Subject} from 'rxjs/Subject';
+import {Forcable, MovableEntity} from '../typings';
 
 // represents a body with physical properties that can be acted upon
-export class DynamicBody {
+export class DynamicBody implements Forcable, MovableEntity {
 
   position: Vec2d; // [m], global
   velocity: Vec2d; // [m/s], translational, local
@@ -11,6 +12,8 @@ export class DynamicBody {
   momentOfInertia: number; // [kg-m^2], assuming rectangle (arbitrary)
   angularVelocity: number; // [rad/s]
   forceApplications = new Subject<number>();
+  forcesBeingApplied = new Subject<{pointFunc: () => Vec2d, forceVecFunc: () => Vec2d}>();
+  forcesBeingAppliedArr: {pointFunc: () => Vec2d, forceVecFunc: () => Vec2d}[] = [];
 
   _angle: number; // [rad], right is 0, increases clockwise
   _forward: Vec2d;
@@ -41,18 +44,19 @@ export class DynamicBody {
   // apply force by local coords, local force in Newtons
   applyLocalForceAtLocalPoint = (pointLFunc: () => Vec2d, forceVecLFunc: () => Vec2d) => {
 
-    // const forceVec = forceVecL.copy();
-    // const point = pointL.copy();
-
     return this.applyForceAtPoint(
       () => pointLFunc().rotateByAngle(this.angle),
-      () => forceVecLFunc().rotateByAngleWithOffset(this.angle, pointLFunc())
+      () => forceVecLFunc().rotateByAngle(this.angle)
     );
   }
 
   applyForceAtPoint = (pointFunc: () => Vec2d, forceVecFunc: () => Vec2d) => {
 
+    this.forcesBeingAppliedArr.push({ pointFunc, forceVecFunc});
+
     return this.forceApplications.subscribe(dt => {
+
+      this.forcesBeingApplied.next({ pointFunc, forceVecFunc});
 
       const forceDict = this.calculateForces(pointFunc(), forceVecFunc());
 
@@ -75,7 +79,7 @@ export class DynamicBody {
     const torque = radiusVec.ccwPerp().dot(forceVec);
 
     // transForceVec = ((radiusVec dot forceVec)/norm(radiusVec)^2) * -radiusVec
-    let transForceVec;
+    let transForceVec: Vec2d;
 
     if (radiusVec.x === 0 && radiusVec.y === 0) { // pointing straight at CoM; all force is translational
       transForceVec = forceVec;

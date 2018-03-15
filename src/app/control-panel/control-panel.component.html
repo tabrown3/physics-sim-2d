@@ -17,3 +17,27 @@
     value="0"
   />
 </div>
+
+<div class="input-group input-group-sm">
+  <div class="input-group-prepend">
+    <span class="input-group-text">Port</span>
+  </div>
+  <input
+    (mousedown)="portButton(100)"
+    (mouseup)="portButton(0)"
+    type="button"
+    class="form-control"
+  />
+</div>
+
+<div class="input-group input-group-sm">
+  <div class="input-group-prepend">
+    <span class="input-group-text">Starboard</span>
+  </div>
+  <input
+    (mousedown)="starboardButton(100)"
+    (mouseup)="starboardButton(0)"
+    type="button"
+    class="form-control"
+  />
+</div>

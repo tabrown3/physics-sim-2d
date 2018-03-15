@@ -18,4 +18,14 @@ export class ControlPanelComponent implements OnInit {
     this.shipControlService.onThrustChange.next(thrustVal);
   }
 
+  portButton(thrustVal: number) {
+
+    this.shipControlService.onPortThruster.next(thrustVal);
+  }
+
+  starboardButton(thrustVal: number) {
+
+    this.shipControlService.onStarboardThruster.next(thrustVal);
+  }
+
 }

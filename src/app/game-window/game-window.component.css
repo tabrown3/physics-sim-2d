@@ -4,9 +4,10 @@
 }
 
 .box {
-  width: 100px;
-  height: 100px;
-  position: relative;
+  width: 11px;
+  height: 11px;
+  border: 1px solid black;
+  position: fixed;
   top: 100px;
   left: 100px;
   background: red;

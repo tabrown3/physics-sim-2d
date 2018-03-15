@@ -1,60 +1,71 @@
-import {Component, OnInit} from '@angular/core';
-import {DynamicBody} from '../../common/dynamic-body.model';
+import {AfterViewInit, Component, ElementRef, OnInit, ViewChild} from '@angular/core';
+import {SpaceShip} from '../../common/space-ship.model';
+import {ShipFactoryService} from '../ship-factory.service';
 import {Vec2d} from '../../common/vec-2d.model';
-import {ShipControlService} from '../ship-control.service';
 
 @Component({
   selector: 'app-game-window',
   templateUrl: './game-window.component.html',
   styleUrls: ['./game-window.component.css']
 })
-export class GameWindowComponent implements OnInit {
+export class GameWindowComponent implements OnInit, AfterViewInit {
 
-  dynamicBody = new DynamicBody();
+  ship: SpaceShip;
+  @ViewChild('myCanvas') myCanvas: ElementRef;
+  context: CanvasRenderingContext2D;
 
-  // @HostListener('document:mousedown', ['$event']) mouseDown(ev: MouseEvent) {
-  // }
-  //
-  // @HostListener('document:mouseup', ['$event']) mouseUp(ev: MouseEvent) {
-  // }
+  constructor(private shipFactoryService: ShipFactoryService) {
 
-  private _thrustVec = new Vec2d(0, 0);
-
-  constructor(private shipControlService: ShipControlService) {
-
-    this.dynamicBody.position = new Vec2d(0, 0);
-    this.dynamicBody.velocity = new Vec2d(0, 0);
-    this.dynamicBody.angle = 0;
-    this.dynamicBody.angularVelocity = 0;
-    this.dynamicBody.mass = 100;
-    this.dynamicBody.centerOfMass = new Vec2d(50, 50);
-    this.dynamicBody.momentOfInertia = (1 / 12) * this.dynamicBody.mass * 144; // (1/12) * mass[kg] * (h^2 + w^2)[m^2]
   }
 
   ngOnInit() {
 
-    const aftPort = this.dynamicBody.applyLocalForceAtLocalPoint(() => new Vec2d(-1, -1), () => this._thrustVec);
-
-    const aftStarboard = this.dynamicBody.applyLocalForceAtLocalPoint(() => new Vec2d(-1, 1), () => this._thrustVec);
-
-    // setTimeout(() => {
-    //
-    //   aftPort.unsubscribe();
-    //   aftStarboard.unsubscribe();
-    // }, 3000);
+    this.ship = this.shipFactoryService.create();
 
     const timeStepMilliseconds = 50;
     const timeStepSeconds = timeStepMilliseconds / 1000;
 
     setInterval(() => {
 
-      this.dynamicBody.step(timeStepSeconds);
+       this.ship.dynamicBody.step(timeStepSeconds);
     }, timeStepMilliseconds);
-
-    this.shipControlService.onThrustChange.subscribe(thrustVal => {
-
-      this._thrustVec = new Vec2d(thrustVal, 0);
-    });
   }
 
+  ngAfterViewInit() {
+    this.context = (<HTMLCanvasElement>this.myCanvas.nativeElement).getContext('2d');
+
+    setInterval(() => {
+
+      this.context.clearRect(0, 0, this.myCanvas.nativeElement.width, this.myCanvas.nativeElement.height);
+
+      // this.context.save();
+      this.context.fillStyle = 'orange';
+
+      for (const segment of this.ship.drawShip()) {
+        this.context.save();
+        this.context.translate(segment.x, segment.y);
+        this.context.rotate(this.ship.dynamicBody.angle);
+        this.context.fillRect(0, 0, 11, 11);
+        this.context.restore();
+      }
+
+      for (const bob of this.ship.dynamicBody.forcesBeingAppliedArr) {
+
+        const point = bob.pointFunc();
+        const forceVec = bob.forceVecFunc();
+        const gPoint = point.add(this.ship.dynamicBody.centerOfMass).add(this.ship.dynamicBody.position);
+        const gForce = forceVec.scalarMult(-1).add(gPoint);
+
+        this.context.save();
+        this.context.beginPath();
+        this.context.moveTo(gPoint.x, gPoint.y);
+        this.context.lineTo(gForce.x, gForce.y);
+        this.context.stroke();
+        this.context.restore();
+      }
+
+      // this.context.restore();
+
+    }, 50);
+  }
 }
