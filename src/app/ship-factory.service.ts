@@ -19,6 +19,9 @@ export class ShipFactoryService {
 
     const shipSegment = new ShipSegment(new Vec2d(0, 0), 0);
     const shipSegment2 = new ShipSegment(new Vec2d(0, 11), 0);
+    const shipSegment3 = new ShipSegment(new Vec2d(0, -11), 0);
+    const shipSegment4 = new ShipSegment(new Vec2d(11, 0), 0);
+    const shipSegment5 = new ShipSegment(new Vec2d(22, 0), 0);
 
     this.shipControlService.onThrustChange.subscribe(thrustVal => {
 
@@ -37,16 +40,24 @@ export class ShipFactoryService {
 
     const segments = [
       shipSegment,
-      shipSegment2
+      shipSegment2,
+      shipSegment3,
+      shipSegment4,
+      shipSegment5
     ];
 
     const outShip = new SpaceShip(segments);
 
-    outShip.dynamicBody.applyLocalForceAtLocalPoint(() => new Vec2d(0, 0), () => this._thrustVec);
+    const killShipFunc = outShip.dynamicBody.applyLocalForceAtLocalPoint(() => new Vec2d(0, 0), () => this._thrustVec);
 
-    shipSegment.dynamicLimb.applyLocalForceAtLocalPoint(() => new Vec2d(0, 0), () => this._portVec);
+    const killFunc = shipSegment3.dynamicLimb.applyLocalForceAtLocalPoint(() => new Vec2d(0, 5), () => this._portVec);
 
-    shipSegment2.dynamicLimb.applyLocalForceAtLocalPoint(() => new Vec2d(0, 0), () => this._starboardVec);
+    const killFunc2 = shipSegment2.dynamicLimb.applyLocalForceAtLocalPoint(() => new Vec2d(0, -5), () => this._starboardVec);
+
+    // setTimeout(() => {
+    //
+    //   killShipFunc();
+    // }, 5000);
 
     return outShip;
   }

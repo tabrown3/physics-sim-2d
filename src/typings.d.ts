@@ -10,9 +10,8 @@ interface NodeModule {
 }
 
 interface Forcable {
-  forceApplications: Subject<number>;
-  forcesBeingApplied: Subject<{pointFunc: () => Vec2d, forceVecFunc: () => Vec2d}>;
-  applyLocalForceAtLocalPoint: (pointLFunc: () => Vec2d, forceVecLFunc: () => Vec2d) => Subscription;
+  applyLocalForceAtLocalPoint: (pointLFunc: () => Vec2d, forceVecLFunc: () => Vec2d) => () => void;
+  forcesBeingAppliedArr: IterableIterator<ForceApplication>;
 }
 
 interface MovableEntity extends PhysicalEntity {
@@ -26,4 +25,9 @@ interface PhysicalEntity {
   mass: number;
   momentOfInertia: number;
   centerOfMass: Vec2d;
+}
+
+interface ForceApplication {
+  pointFunc: () => Vec2d;
+  forceVecFunc: () => Vec2d;
 }

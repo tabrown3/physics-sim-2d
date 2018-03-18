@@ -1,18 +1,22 @@
-import {Forcable, PhysicalEntity} from '../typings';
+import {Forcable, ForceApplication, PhysicalEntity} from '../typings';
 import {Vec2d} from './vec-2d.model';
-import {Subject} from 'rxjs/Subject';
 
 export class DynamicLimb implements Forcable, PhysicalEntity {
-  position: Vec2d;
+  position: Vec2d; // relative to body position and orientation, so (1, 1) would be one down its 'right' vector and one down its 'forward'
   angle: number;
   mass: number;
   momentOfInertia: number;
   centerOfMass: Vec2d;
 
-  forceApplications = new Subject<number>(); // apply a force toward this limb
-  // for those interested in knowing what forces are being applied
-  forcesBeingApplied = new Subject<{pointFunc: () => Vec2d, forceVecFunc: () => Vec2d}>();
-  forcesBeingAppliedArr: {pointFunc: () => Vec2d, forceVecFunc: () => Vec2d}[] = [];
+  _forcesBeingAppliedArr: ForceApplication[] = [];
+
+  get forcesBeingAppliedArr(): IterableIterator<{pointFunc: () => Vec2d, forceVecFunc: () => Vec2d}> {
+
+    return (function* () {
+
+      yield* this._forcesBeingAppliedArr;
+    }).apply(this);
+  }
 
   applyLocalForceAtLocalPoint = (pointLFunc: () => Vec2d, forceVecLFunc: () => Vec2d) => {
 
@@ -32,10 +36,10 @@ export class DynamicLimb implements Forcable, PhysicalEntity {
       forceVecFunc: () => forceVecFunc()
     };
 
-    this.forcesBeingAppliedArr.push(forceThing);
+    this._forcesBeingAppliedArr.push(forceThing);
 
-    this.forcesBeingApplied.next(forceThing);
-
-    return null;
+    return () => {
+      this._forcesBeingAppliedArr.splice(this._forcesBeingAppliedArr.indexOf(forceThing), 1);
+    };
   }
 }

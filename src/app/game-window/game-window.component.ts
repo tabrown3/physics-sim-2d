@@ -39,13 +39,16 @@ export class GameWindowComponent implements OnInit, AfterViewInit {
       this.context.clearRect(0, 0, this.myCanvas.nativeElement.width, this.myCanvas.nativeElement.height);
 
       // this.context.save();
-      this.context.fillStyle = 'orange';
+      this.context.fillStyle = 'red';
+      this.context.strokeStyle = 'orange';
 
       for (const segment of this.ship.drawShip()) {
         this.context.save();
         this.context.translate(segment.x, segment.y);
         this.context.rotate(this.ship.dynamicBody.angle);
         this.context.fillRect(0, 0, 11, 11);
+        this.context.fillStyle = 'black';
+        this.context.fillRect(1, 1, 9, 9);
         this.context.restore();
       }
 
@@ -54,7 +57,7 @@ export class GameWindowComponent implements OnInit, AfterViewInit {
         const point = bob.pointFunc();
         const forceVec = bob.forceVecFunc();
         const gPoint = point.add(this.ship.dynamicBody.centerOfMass).add(this.ship.dynamicBody.position);
-        const gForce = forceVec.scalarMult(-1).add(gPoint);
+        const gForce = gPoint.subtract(forceVec);
 
         this.context.save();
         this.context.beginPath();

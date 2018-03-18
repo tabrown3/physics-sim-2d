@@ -1,6 +1,6 @@
 import {Vec2d} from './vec-2d.model';
 import {Subject} from 'rxjs/Subject';
-import {Forcable, MovableEntity} from '../typings';
+import {Forcable, ForceApplication, MovableEntity} from '../typings';
 
 // represents a body with physical properties that can be acted upon
 export class DynamicBody implements Forcable, MovableEntity {
@@ -11,9 +11,26 @@ export class DynamicBody implements Forcable, MovableEntity {
   centerOfMass: Vec2d; // [m], local (offset from position (CoM + pos = global CoM pos)
   momentOfInertia: number; // [kg-m^2], assuming rectangle (arbitrary)
   angularVelocity: number; // [rad/s]
-  forceApplications = new Subject<number>();
-  forcesBeingApplied = new Subject<{pointFunc: () => Vec2d, forceVecFunc: () => Vec2d}>();
-  forcesBeingAppliedArr: {pointFunc: () => Vec2d, forceVecFunc: () => Vec2d}[] = [];
+
+  private _forcesBeingAppliedArr: {pointFunc: () => Vec2d, forceVecFunc: () => Vec2d}[] = [];
+
+  forcesBeingAppliedByLimbs: () => IterableIterator<ForceApplication>;
+
+  // returns iterator that's a composite of forces applied directly to body and forces applied to limbs (and subsequently to body)
+  get forcesBeingAppliedArr(): IterableIterator<ForceApplication> {
+
+    return (function*() {
+
+      // iterate over forces applied by limbs, transform them to be relative to body,
+      //  then treat them as if they were being applied to the body (part of dynamicBody.forcesBeingAppliedArr)
+      for (const force of this.forcesBeingAppliedByLimbs()) {
+
+        yield this.transformRelativeToBody(force);
+      }
+
+      yield* this._forcesBeingAppliedArr;
+    }).apply(this);
+  }
 
   _angle: number; // [rad], right is 0, increases clockwise
   _forward: Vec2d;
@@ -41,6 +58,15 @@ export class DynamicBody implements Forcable, MovableEntity {
     return this._right;
   }
 
+  // takes limb force applications and transforms them to be applied directly to body
+  private transformRelativeToBody(force: ForceApplication) {
+    // limb point is relative to body position, but needs to be relative to CoM and rotated
+    return {
+      pointFunc: () => force.pointFunc().subtract(this.centerOfMass).rotateByAngle(this.angle),
+      forceVecFunc: () => force.forceVecFunc().rotateByAngle(this.angle)
+    };
+  }
+
   // apply force by local coords, local force in Newtons
   applyLocalForceAtLocalPoint = (pointLFunc: () => Vec2d, forceVecLFunc: () => Vec2d) => {
 
@@ -52,23 +78,29 @@ export class DynamicBody implements Forcable, MovableEntity {
 
   applyForceAtPoint = (pointFunc: () => Vec2d, forceVecFunc: () => Vec2d) => {
 
-    this.forcesBeingAppliedArr.push({ pointFunc, forceVecFunc});
+    const forceThing = { pointFunc, forceVecFunc};
 
-    return this.forceApplications.subscribe(dt => {
+    this._forcesBeingAppliedArr.push(forceThing);
 
-      this.forcesBeingApplied.next({ pointFunc, forceVecFunc});
-
-      const forceDict = this.calculateForces(pointFunc(), forceVecFunc());
-
-      const velocityDiffDict = this.calculateVelocities(forceDict.torque, forceDict.transForceVec, dt);
-      this.modifyVelocities(velocityDiffDict.angularVelocityDiff, velocityDiffDict.velocityDiff);
-    });
+    return () => {
+      this._forcesBeingAppliedArr.splice(this._forcesBeingAppliedArr.indexOf(forceThing), 1);
+    };
   }
 
-  // this is essentially the "update" call made to actually add the forces to the body
+  // this is essentially the "update" call made to actually affect the body by the forces
   step = (dt: number) => {
 
-    this.forceApplications.next(dt);
+    // iterate over all forces being applied
+    for (const force of this.forcesBeingAppliedArr) {
+
+      // calculate torque and translational force
+      const forceDict = this.calculateForces(force.pointFunc(), force.forceVecFunc());
+      // use torque and translational to calculate change in velocities
+      const velocityDiffDict = this.calculateVelocities(forceDict.torque, forceDict.transForceVec, dt);
+      // apply change in velocities to velocities
+      this.modifyVelocities(velocityDiffDict.angularVelocityDiff, velocityDiffDict.velocityDiff);
+    }
+
     const positionDiffDict = this.calculatePositions(dt);
     this.modifyPositions(positionDiffDict.angleDiff, positionDiffDict.positionDiff);
   }

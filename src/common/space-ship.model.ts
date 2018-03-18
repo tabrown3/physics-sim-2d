@@ -60,16 +60,19 @@ export class SpaceShip {
 
   private subscribeToForces = (segments: ShipSegment[]) => {
 
-    for (const segment of segments) {
+    this.dynamicBody.forcesBeingAppliedByLimbs = function* () {
 
-      segment.dynamicLimb.forcesBeingApplied.subscribe(forceApplication => {
+      for (const segment of segments) {
 
-        this.dynamicBody.applyLocalForceAtLocalPoint(
-          () => forceApplication.pointFunc().subtract(this.dynamicBody.centerOfMass), // pointFunc is relative to pos, no CoM
-          forceApplication.forceVecFunc
-        );
-      });
-    }
+        for (const force of segment.dynamicLimb.forcesBeingAppliedArr) {
+
+          yield {
+            pointFunc: () => force.pointFunc(),
+            forceVecFunc: () => force.forceVecFunc()
+          };
+        }
+      }
+    };
   }
 
   drawShip = () => {
